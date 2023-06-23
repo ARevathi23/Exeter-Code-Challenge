@@ -1,0 +1,103 @@
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class EnglishToFrenchTranslator {
+    public static void main(String[] args) {
+        String findWordsFilePath = "find_words.txt";
+        String shakespeareTextFilePath = "t8.shakespeare.txt";
+        String dictionaryFilePath = "french_dictionary.csv";
+
+        try {
+            // Read find_words.txt
+            List<String> findWordsList = Files.readAllLines(Paths.get(findWordsFilePath));
+
+            // Read t8.shakespeare.txt
+            String shakespeareText = Files.readString(Paths.get(shakespeareTextFilePath));
+
+            // Read dictionary.csv
+            Map<String, String> dictionary = readDictionaryFromFile(dictionaryFilePath);
+
+            // Translate words in shakespeareText to French
+            String translatedText = translateText(shakespeareText, findWordsList, dictionary);
+
+            // Write translated text to t8.shakespeare.translated.txt
+            writeToFile("t8.shakespeare.translated.txt", translatedText);
+
+            // Create frequency.csv
+            createFrequencyCSV(findWordsList, dictionary);
+
+            // Create performance.txt
+            createPerformanceFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Map<String, String> readDictionaryFromFile(String filePath) throws IOException {
+        Map<String, String> dictionary = new HashMap<>();
+
+        List<String> lines = Files.readAllLines(Paths.get(filePath));
+        for (String line : lines) {
+            String[] parts = line.split(",");
+            if (parts.length == 2) {
+                dictionary.put(parts[0], parts[1]);
+            }
+        }
+
+        return dictionary;
+    }
+
+    private static String translateText(String text, List<String> findWordsList, Map<String, String> dictionary) {
+        String[] words = text.split("\\s+");
+        StringBuilder translatedText = new StringBuilder();
+
+        for (String word : words) {
+            String translatedWord = dictionary.getOrDefault(word.toLowerCase(), word);
+            translatedText.append(translatedWord).append(" ");
+        }
+
+        return translatedText.toString();
+    }
+
+    private static void writeToFile(String filePath, String content) throws IOException {
+        Path path = Paths.get(filePath);
+        Files.write(path, content.getBytes());
+    }
+
+    private static void createFrequencyCSV(List<String> findWordsList, Map<String, String> dictionary) throws IOException {
+        List<String> rows = findWordsList.stream()
+                .filter(dictionary::containsKey)
+                .map(word -> word + "," + dictionary.get(word))
+                .collect(Collectors.toList());
+
+        rows.add(0, "English Word,French Word");
+
+        Path path = Paths.get("frequency.csv");
+        Files.write(path, rows);
+    }
+
+    private static void createPerformanceFile() throws IOException {
+        long startTime = System.currentTimeMillis();
+
+        // Perform your tasks here
+
+        long endTime = System.currentTimeMillis();
+        long timeTaken = endTime - startTime;
+        double memoryUsed = getMemoryUsed();
+
+        String content = String.format("Time to process: %d milliseconds\nMemory used: %.2f MB", timeTaken, memoryUsed);
+        writeToFile("performance.txt", content);
+    }
+
+    private static double getMemoryUsed() {
+        Runtime runtime = Runtime.getRuntime();
+        long memoryUsed = runtime.totalMemory() - runtime.freeMemory();
+        return memoryUsed / (1024.0 * 1024.0); // Convert to MB
+    }
+}
